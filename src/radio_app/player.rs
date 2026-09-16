@@ -520,7 +520,7 @@ impl LocalPlayer {
     self.bounded(move || sink.clear());
   }
 
-  /// Set the output volume from the user's percent on a logarithmic curve.
+  /// Set the output volume from the user's percent on a perceptual curve.
   pub fn set_volume(&self, percent: u8) {
     self.volume_percent.store(percent, Ordering::Relaxed);
     self.player().set_volume(volume_gain(percent));
@@ -662,15 +662,14 @@ fn default_output_name() -> Option<String> {
 // Tests
 // ---------------------------------------------------------------------------
 
-/// The gain for a volume percent on a 60 dB logarithmic curve.
-/// 0% is silence, 100% is the file level, and 80% is about -12 dB.
+/// The gain for a volume percent on a square-law perceptual curve.
+///
+/// This keeps the useful range broad: 50% is -12 dB and 80% is about -4 dB.
+/// A 60 dB logarithmic fader put those positions at -30 dB and -12 dB,
+/// concentrating nearly all audible adjustment in the final fifth.
 pub fn volume_gain(percent: u8) -> f32 {
-  const DB_RATIO: f64 = 1000.0;
-  match percent {
-    0 => 0.0,
-    p if p >= 100 => 1.0,
-    p => ((f64::from(p) / 100.0 - 1.0) * DB_RATIO.ln()).exp() as f32,
-  }
+  let normalized = f32::from(percent.min(100)) / 100.0;
+  normalized * normalized
 }
 
 #[cfg(test)]
@@ -678,21 +677,13 @@ mod tests {
   use super::*;
 
   #[test]
-  fn volume_gain_follows_the_native_log_curve() {
+  fn volume_gain_uses_a_square_law_curve() {
     assert_eq!(volume_gain(0), 0.0);
     assert_eq!(volume_gain(100), 1.0);
     assert_eq!(volume_gain(150), 1.0);
-    let at_80 = volume_gain(80);
-    assert!(
-      (at_80 - 0.251).abs() < 0.001,
-      "80% is about -12 dB: {at_80}"
-    );
-    let at_50 = volume_gain(50);
-    assert!(
-      (at_50 - 0.0316).abs() < 0.001,
-      "50% is about -30 dB: {at_50}"
-    );
-    assert!(volume_gain(20) < at_50 && at_50 < at_80);
+    assert_eq!(volume_gain(50), 0.25);
+    assert!((volume_gain(80) - 0.64).abs() < f32::EPSILON);
+    assert!(volume_gain(20) < volume_gain(50) && volume_gain(50) < volume_gain(80));
   }
 
   #[test]

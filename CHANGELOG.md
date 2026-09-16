@@ -12,3 +12,4 @@
 - Added an `x` settings menu with six bundled Omarchy-inspired theme presets: Tokyo Night, Catppuccin, Osaka Jade, Gruvbox, Nord, and Rose Pine.
 - Added the current ICY song title to the bottom status box.
 - Made the bottom now-playing bar clickable for play/pause and added a live animated equalizer.
+- Retuned volume to a square-law perceptual curve so the middle of the slider remains comfortably audible.
