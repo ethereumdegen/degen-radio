@@ -2,6 +2,8 @@
 
 A focused internet-radio player for the terminal.
 
+Fork of https://github.com/LargeModGames/spotatui.
+
 Search the [Radio Browser](https://www.radio-browser.info/) directory, save favorite stations, stream them through your system audio output, and see live song metadata. No account or subscription required.
 
 ## Install
