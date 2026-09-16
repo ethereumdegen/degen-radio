@@ -1,84 +1,70 @@
-# degen-radio
+# Degen Radio
 
-A focused internet-radio terminal player derived from Spotatui. This fork contains no Spotify client, Spotify authentication flow, Spotify playback backend, YouTube integration, or YouTube downloader.
+A focused internet-radio player for the terminal.
 
-The installed command is `degen-radio`.
+Search the [Radio Browser](https://www.radio-browser.info/) directory, save favorite stations, stream them through your system audio output, and see live song metadata. No account or subscription required.
 
-## Features
-
-- Saved stations from the existing Spotatui `config.yml` and `state.yml`
-- radio-browser.info station search
-- MP3/AAC internet-stream playback through the system audio output
-- ICY `StreamTitle` now-playing metadata
-- Linux MPRIS controls and metadata
-- External station control for the Omarchy plugin
-
-## Build and run
+## Install
 
 ```bash
-cargo run
+git clone https://github.com/ethereumdegen/degen-radio.git
+cd degen-radio
+cargo install --path . --locked
+degen-radio
 ```
 
-Release install:
-
-```bash
-cargo install --path . --force
-```
+Degen Radio currently targets Linux and integrates with MPRIS for desktop media controls.
 
 ## Controls
 
 | Key | Action |
 |---|---|
-| `j` / `Down` | Next station in the focused panel |
-| `k` / `Up` | Previous station in the focused panel |
-| `Left` / `h` | Focus saved stations |
-| `Right` / `l` | Focus directory results |
-| `Enter` | Play selected station |
-| `s` / `/` | Focus station search |
-| `x` | Open or close settings |
-| `f` | Add selected search result to favorites |
-| `d` / `D` | Remove selected station from favorites |
-| `r` | Focus saved stations |
-| `Esc` | Focus saved stations, then quit |
+| `s` or `/` | Search for stations |
+| Arrow keys or `h`/`j`/`k`/`l` | Move between panels and stations |
+| `Enter` | Play the selected station |
+| `f` | Add a favorite |
+| `d` or `D` | Remove a favorite |
 | `Space` | Pause or resume |
-| `+` / `-` | Adjust volume |
-| `X` | Stop |
+| `+` / `-` | Change volume |
+| `x` | Open or close settings |
+| `X` | Stop playback |
 | `q` | Quit |
-| Mouse click | Focus search, saved stations, or directory results |
 
-Theme presets live inside the Degen Radio settings menu: press `x` or click **Settings**, choose with `Up`/`Down`, then press `Enter`. The six bundled Omarchy-inspired presets are Tokyo Night, Catppuccin, Osaka Jade, Gruvbox, Nord, and Rose Pine. The selected preset is saved to `$XDG_STATE_HOME/degen-radio/state.yml`.
+The search box, station panels, and settings also support mouse input.
 
-## Station storage
+## Themes
 
-The player reads configured stations from:
+Open settings with `x`, choose a preset with `Up`/`Down`, and apply it with `Enter`.
 
-```yaml
-behavior:
-  radio_stations:
-    - name: Groove Salad
-      url: https://ice1.somafm.com/groovesalad-128-mp3
-```
-
-It prefers `$XDG_STATE_HOME/degen-radio/state.yml` and falls back to the previous `~/.local/state/spotatui/state.yml` location so existing radio favorites are preserved.
-
-Favorites added from search are written to `$XDG_STATE_HOME/degen-radio/state.yml` and immediately become available to the Omarchy tray plugin.
+Included presets: Tokyo Night, Catppuccin, Osaka Jade, Gruvbox, Nord, and Rose Pine.
 
 ## Omarchy tray plugin
 
-The companion [Degen Radio for Omarchy](https://github.com/ethereumdegen/omarchy-degen-radio-plugin) repository provides the bar widget, now-playing popup, playback controls, and saved-station picker.
+The companion [Degen Radio for Omarchy](https://github.com/ethereumdegen/omarchy-degen-radio-plugin) plugin adds a tray widget with now-playing metadata, playback controls, and saved-station switching.
+
+```bash
+omarchy plugin add https://github.com/ethereumdegen/omarchy-degen-radio-plugin.git --enable
+```
+
+## Data
+
+Favorites and settings are stored in `$XDG_STATE_HOME/degen-radio/state.yml`. Existing Spotatui radio favorites are imported automatically from `~/.local/state/spotatui/state.yml` when no Degen Radio state exists.
 
 ## External control
 
-List saved stations as JSON:
-
 ```bash
+# List saved stations
 degen-radio radio list --json
-```
 
-Ask the running player to switch stations through MPRIS:
-
-```bash
+# Switch the running player to a stream
 degen-radio radio play https://ice1.somafm.com/groovesalad-128-mp3
 ```
 
-Repository: <https://github.com/ethereumdegen/degen-radio>
+## Development
+
+```bash
+cargo run
+cargo test --locked
+```
+
+Degen Radio is derived from [Spotatui](https://github.com/LargeModGames/spotatui) and is available under the MIT license.
