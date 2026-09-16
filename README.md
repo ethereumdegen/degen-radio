@@ -32,7 +32,7 @@ Degen Radio currently targets Linux and integrates with MPRIS for desktop media 
 | `X` | Stop playback |
 | `q` | Quit |
 
-The search box, station panels, and settings also support mouse input.
+The search box, station panels, and settings support mouse input. Click the bottom now-playing bar to pause or resume; its animated equalizer shows when audio is playing.
 
 ## Themes
 

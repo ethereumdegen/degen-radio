@@ -12,7 +12,7 @@ use crossterm::terminal::{
   disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
@@ -51,10 +51,13 @@ pub(super) struct State {
   session: Option<Session>,
   generation: u64,
   last_title: Option<String>,
+  playback_paused: bool,
+  animation_frame: usize,
   search_area: Rect,
   settings_area: Rect,
   saved_area: Rect,
   results_area: Rect,
+  footer_area: Rect,
 }
 
 impl State {
@@ -80,10 +83,13 @@ impl State {
       session: None,
       generation: 0,
       last_title: None,
+      playback_paused: false,
+      animation_frame: 0,
       search_area: Rect::default(),
       settings_area: Rect::default(),
       saved_area: Rect::default(),
       results_area: Rect::default(),
+      footer_area: Rect::default(),
     }
   }
 
@@ -137,6 +143,9 @@ pub(super) async fn run(
       terminal.draw(|frame| draw(frame, &mut state))?;
       tokio::select! {
         _ = tick.tick() => {
+          if state.session.is_some() && !state.playback_paused {
+            state.animation_frame = (state.animation_frame + 1) % EQUALIZER_FRAMES.len();
+          }
           let title = state.now_playing();
           if title != state.last_title {
             state.last_title = title.clone();
@@ -157,7 +166,9 @@ pub(super) async fn run(
               break;
             }
           }
-          UiEvent::Mouse(mouse) => handle_mouse(mouse, &mut state),
+          UiEvent::Mouse(mouse) => {
+            handle_mouse(mouse, &mut state, &player, &tune_tx, &mpris)
+          }
           UiEvent::Search(result) => {
             state.searching = false;
             state.search_input = None;
@@ -445,6 +456,7 @@ fn draw(frame: &mut ratatui::Frame<'_>, state: &mut State) {
     frame.render_stateful_widget(results, state.results_area, &mut result_state);
   }
 
+  state.footer_area = chunks[3];
   let footer = state
     .now_playing()
     .or_else(|| {
@@ -455,13 +467,28 @@ fn draw(frame: &mut ratatui::Frame<'_>, state: &mut State) {
     })
     .map(|track| format!("{track}  |  {}  |  Volume {}%", state.status, state.volume))
     .unwrap_or_else(|| format!("{}  |  Volume {}%", state.status, state.volume));
+  let footer_block = Block::default()
+    .borders(Borders::ALL)
+    .title("Click: Play/Pause  S Search  x Settings  ←/→ Focus  F Favorite  D Unfavorite  Q Quit");
+  let footer_inner = footer_block.inner(state.footer_area);
+  frame.render_widget(footer_block, state.footer_area);
+  let footer_chunks = Layout::default()
+    .direction(Direction::Horizontal)
+    .constraints([Constraint::Min(1), Constraint::Length(12)])
+    .split(footer_inner);
+  frame.render_widget(Paragraph::new(footer), footer_chunks[0]);
+  let activity = if state.session.is_none() {
+    ""
+  } else if state.playback_paused {
+    "Ⅱ  PAUSED"
+  } else {
+    EQUALIZER_FRAMES[state.animation_frame]
+  };
   frame.render_widget(
-    Paragraph::new(footer).block(
-      Block::default()
-        .borders(Borders::ALL)
-        .title("S Search  x Settings  ←/→ Focus  Enter Play  F Favorite  D Unfavorite  Q Quit"),
-    ),
-    chunks[3],
+    Paragraph::new(activity)
+      .alignment(Alignment::Right)
+      .style(Style::default().fg(playing_color)),
+    footer_chunks[1],
   );
 }
 
@@ -584,10 +611,22 @@ fn unfavorite_selected(state: &mut State) {
   }
 }
 
-fn handle_mouse(mouse: MouseEvent, state: &mut State) {
+fn handle_mouse(
+  mouse: MouseEvent,
+  state: &mut State,
+  player: &Arc<LocalPlayer>,
+  tune_tx: &mpsc::UnboundedSender<TuneResult>,
+  mpris: &mpris::Manager,
+) {
   match mouse.kind {
     MouseEventKind::Down(MouseButton::Left) => {
-      if contains(state.search_area, mouse.column, mouse.row) {
+      if contains(state.footer_area, mouse.column, mouse.row) {
+        if state.session.is_some() {
+          toggle(state, player, mpris);
+        } else {
+          play_selected(state, player, tune_tx);
+        }
+      } else if contains(state.search_area, mouse.column, mouse.row) {
         state.search_input = Some(String::new());
       } else if contains(state.settings_area, mouse.column, mouse.row) {
         open_settings(state);
@@ -643,6 +682,17 @@ fn clicked_row(area: Rect, row: u16, item_count: usize) -> Option<usize> {
   let index = row.checked_sub(area.y.saturating_add(1))? as usize;
   (index < item_count).then_some(index)
 }
+
+const EQUALIZER_FRAMES: [&str; 8] = [
+  "▁▂▄▆█▆▄▂",
+  "▂▄▆█▆▄▂▁",
+  "▄▆█▆▄▂▁▂",
+  "▆█▆▄▂▁▂▄",
+  "█▆▄▂▁▂▄▆",
+  "▆▄▂▁▂▄▆█",
+  "▄▂▁▂▄▆█▆",
+  "▂▁▂▄▆█▆▄",
+];
 
 #[derive(Clone, Copy)]
 struct ThemePalette {
@@ -790,6 +840,7 @@ fn finish_tune(
       player.set_volume(state.volume);
       match player.play_prepared(prepared) {
         Ok(()) => {
+          state.playback_paused = false;
           state.status = format!("Playing {}", station.name);
           state.last_title = None;
           {
@@ -822,10 +873,12 @@ fn toggle(state: &mut State, player: &Arc<LocalPlayer>, mpris: &mpris::Manager) 
   }
   if player.is_paused() {
     player.resume();
+    state.playback_paused = false;
     state.status = "Playing".to_owned();
     mpris.set_playing(true);
   } else {
     player.pause();
+    state.playback_paused = true;
     state.status = "Paused".to_owned();
     mpris.set_playing(false);
   }
@@ -836,6 +889,7 @@ fn stop(state: &mut State, player: &Arc<LocalPlayer>) {
   if let Some(session) = state.session.take() {
     (session.cancel)();
   }
+  state.playback_paused = false;
   player.stop();
 }
 

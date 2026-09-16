@@ -11,3 +11,4 @@
 - Added persistent favorite and unfavorite actions from either station panel.
 - Added an `x` settings menu with six bundled Omarchy-inspired theme presets: Tokyo Night, Catppuccin, Osaka Jade, Gruvbox, Nord, and Rose Pine.
 - Added the current ICY song title to the bottom status box.
+- Made the bottom now-playing bar clickable for play/pause and added a live animated equalizer.
