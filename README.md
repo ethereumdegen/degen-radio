@@ -4,6 +4,9 @@ A focused internet-radio player for the terminal.
 
 Fork of https://github.com/LargeModGames/spotatui.
 
+<img width="1061" height="514" alt="degen-radio" src="https://github.com/user-attachments/assets/7bdb4442-1df2-4b1f-b5b5-b8f7f57d0fbb" />
+
+
 Search the [Radio Browser](https://www.radio-browser.info/) directory, save favorite stations, stream them through your system audio output, and see live song metadata. No account or subscription required.
 
 ## Install
