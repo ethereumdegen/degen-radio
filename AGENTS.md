@@ -11,7 +11,7 @@ degen-radio radio list --json
 
 ## Architecture
 
-- `src/radio_app/config.rs`: compatible loading of saved radio stations and volume.
+- `src/radio_app/config.rs`: favorites, theme settings, and legacy Spotatui migration.
 - `src/radio_app/directory.rs`: radio-browser.info search with mirror failover.
 - `src/radio_app/stream.rs`: HTTP/ICY stream reader and metadata extraction.
 - `src/radio_app/player.rs`: bounded decoded-audio output engine.

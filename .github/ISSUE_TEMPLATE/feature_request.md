@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for spotatui
+about: Suggest an idea for Degen Radio
 title: ''
 labels: enhancement
 assignees: ''
